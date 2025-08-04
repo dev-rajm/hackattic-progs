@@ -1,10 +1,13 @@
 import { Buffer } from "node:buffer";
 import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config({ quiet: true, path: "../.env" });
 
 (async () => {
   // Get the problem json
   const { data } = await axios.get(
-    "https://hackattic.com/challenges/help_me_unpack/problem?access_token=9def105d03dce269"
+    `https://hackattic.com/challenges/help_me_unpack/problem?access_token=${process.env.TOKEN}`
   );
 
   // Convert base64 to raw bytes blob
@@ -22,7 +25,7 @@ import axios from "axios";
 
   // Submit the solution
   const solve = await axios.post(
-    "https://hackattic.com/challenges/help_me_unpack/solve?access_token=9def105d03dce269",
+    `https://hackattic.com/challenges/help_me_unpack/solve?access_token=${process.env.TOKEN}`,
     result
   );
   console.log(solve.data);
