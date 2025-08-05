@@ -21,6 +21,7 @@ const client = new Client({
 });
 await client.connect();
 
+// Get data from db
 async function getData() {
   const query = "SELECT ssn FROM criminal_records WHERE status=$1";
   const { rows } = await client.query(query, ["alive"]);
@@ -41,11 +42,15 @@ async function getData() {
   const sql = decompressed.toString("utf8");
 
   const sqlPath = path.resolve("dump.sql");
-  await writeFile(sqlPath, sql);
-  console.log("SQL file written.");
+  await writeFile(sqlPath, sql, (err) => {
+    if (err) {
+      console.error(`Error writing file: ${err}`);
+    }
+    console.log("SQL file written.");
+  });
 
   // Restore SQL file using psql
-  const command = `psql -U ${process.env.DB_USER} -d ${promisify.env.DB} -f ${sqlPath}`;
+  const command = `psql -U ${process.env.DB_USER} -d ${process.env.DB} -f ${sqlPath}`;
   try {
     const { stdout, stderr } = await execAsync(command, {
       env: {
@@ -63,8 +68,8 @@ async function getData() {
 
   // DB Query
   const aliveSSNs = await getData();
-  const result = { alive_ssns: aliveSSNs };
-  console.log(`Result to submit: ${result}`);
+  const result = { alive_ssns: aliveSSNs }; // JSON of SSNs list
+  console.log(`Result to submit: ${result.alive_ssns}`);
 
   // Submit solution
   const solve = await axios.post(
@@ -72,6 +77,6 @@ async function getData() {
     result
   );
 
-  console.log(`Hackattic response: ${solve.data}`);
+  console.log(`Hackattic response: ${solve.data.message}`);
   await client.end(); // Close pg client
 })();
