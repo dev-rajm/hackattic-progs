@@ -4,25 +4,27 @@ import { config } from "dotenv";
 import { writeFile } from "fs";
 import path from "path";
 import { gunzip } from "zlib";
+import { promisify } from "util";
+import { exec } from "child_process";
 
 config({ path: "../.env", quiet: true });
 
+const gunzipAsync = promisify(gunzip);
+const execAsync = promisify(exec);
+
 const client = new Client({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB,
-  port: process.env.PORT,
+  user: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "localhost",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB || "hackattic",
+  port: Number(process.env.PORT) || 5432,
 });
 await client.connect();
 
 async function getData() {
   const query = "SELECT ssn FROM criminal_records WHERE status=$1";
   const { rows } = await client.query(query, ["alive"]);
-
-  const aliveSSNs = rows.map((row) => row.ssn);
-
-  return aliveSSNs;
+  return rows.map((row) => row.ssn);
 }
 
 (async () => {
@@ -34,44 +36,42 @@ async function getData() {
   const buf = Buffer.from(dump, "base64"); // Store the dump as buffer
   // console.log(buf);
 
-  const __dirname = path.resolve();
-  const sqlPath = path.resolve(__dirname, "dump.sql");
-
   // Decompress the dump buffer
-  gunzip(buf, async (err, decompressBuf) => {
-    if (err) {
-      console.log(`Error while decompressing: ${err}`);
-      return;
-    }
+  const decompressed = await gunzipAsync(buf);
+  const sql = decompressed.toString("utf8");
 
-    const sql = decompressBuf.toString("utf8"); // Decompressed SQL dump
-    // console.log(sql);
+  const sqlPath = path.resolve("dump.sql");
+  await writeFile(sqlPath, sql);
+  console.log("SQL file written.");
 
-    // Create the dump.sql file
-    writeFile(sqlPath, sql, (err) => {
-      if (err) {
-        console.log(`Error while writing sql file: ${err}`);
-        return;
-      }
-
-      console.log("Writing sql file successfully");
+  // Restore SQL file using psql
+  const command = `psql -U ${process.env.DB_USER} -d ${promisify.env.DB} -f ${sqlPath}`;
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      env: {
+        ...process.env,
+        PGPASSWORD: process.env.DB_PASSWORD, // for psql auth
+      },
     });
 
-    // psql -U postgres -d hackattic -f dump.sql (manually)
+    console.log("Database restored.");
+    if (stderr) console.error(`psql stderr: ${stderr}`);
+  } catch (error) {
+    console.error(`psql restore failed: ${error}`);
+    return;
+  }
 
-    setTimeout(async () => {
-      // DB Query
-      const SSNs = await getData();
-      const result = { alive_ssns: SSNs };
-      console.log(result);
+  // DB Query
+  const aliveSSNs = await getData();
+  const result = { alive_ssns: aliveSSNs };
+  console.log(`Result to submit: ${result}`);
 
-      const solve = await axios.post(
-        `https://hackattic.com/challenges/backup_restore/solve?access_token=${process.env.TOKEN}`,
-        result
-      );
+  // Submit solution
+  const solve = await axios.post(
+    `https://hackattic.com/challenges/backup_restore/solve?access_token=${process.env.TOKEN}`,
+    result
+  );
 
-      console.log(`Result: ${solve.data}`);
-      await client.end();
-    }, 50000);
-  });
+  console.log(`Hackattic response: ${solve.data}`);
+  await client.end(); // Close pg client
 })();
