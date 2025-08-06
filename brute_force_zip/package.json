@@ -1,0 +1,21 @@
+{
+  "name": "brute_force_zip",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node script.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "n-readlines": "^1.0.1",
+    "unzipper": "^0.12.3"
+  }
+}
