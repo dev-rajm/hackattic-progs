@@ -19,6 +19,7 @@ const knownPlainFile = "dunwich_horror.txt";
 
 // Download the problem zip
 async function downloadZipFile() {
+  console.log("Downloading problem zip...");
   const { data } = await axios.get(
     `https://hackattic.com/challenges/brute_force_zip/problem?access_token=9def105d03dce269`
   );
@@ -27,37 +28,51 @@ async function downloadZipFile() {
   });
 
   fs.writeFileSync(encryptedZipPath, zipResponse.data); // Writing the zip file
-  console.log("Finished Writing zip file");
+  console.log("Finished Downloading zip...");
 }
 
 // Crack the zip by brute forcing
 async function runPKCrack() {
   console.log("Running PkCrack...");
   try {
-    const cmd = `C:\\Users\\rajma\\pkcrack\\bin\\pkcrack -a -C ${encryptedZipPath} -c ${knownPlainFile} -P ${knownPlainZipPath} -p ${knownPlainFile} -d ${decryptedZipPath}`;
+    const cmd = `C:\\Users\\rajma\\pkcrack\\bin\\pkcrack -C ${encryptedZipPath} -c ${knownPlainFile} -P ${knownPlainZipPath} -p ${knownPlainFile} -d ${decryptedZipPath} -a`;
 
-    await execAsync(cmd);
+    const { stdout, stderr } = await execAsync(cmd, {
+      cwd: workingDir,
+      maxBuffer: 1024 * 1024 * 10,
+    });
+
+    console.log(`pkcrack stdout: ${stdout}`);
+    if (stderr) console.error(`pkcrack stderr: ${stderr}`);
+
+    console.log("Finish PkCrack...");
   } catch (error) {
-    console.log(`Error: ${error.message}`);
+    console.error(`Error: ${error.message}`);
   }
 }
 
 async function unzipAndReadSecret() {
   console.log("Unzipping...");
-  const cmd = `7z x ${decryptedZipPath} -y -o ${workingDir}`;
-  await execAsync(cmd, { cwd: workingDir });
+  try {
+    const cmd = `7z x ${decryptedZipPath} -y -o${workingDir}`;
+    await execAsync(cmd, { cwd: workingDir });
 
-  const secret = readFileSync(
-    path.join(workingDir, "secret.txt"),
-    "utf8"
-  ).trim();
+    const secret = readFileSync(
+      path.join(workingDir, "secret.txt"),
+      "utf8"
+    ).trim();
 
-  console.log(`Secret: ${secret}`);
-  return secret;
+    console.log("Finished unzipping...");
+    console.log(`Secret: ${secret}`);
+    return secret;
+  } catch (error) {
+    throw new Error(error);
+  }
 }
 
 // Submit the result {secret: xxxxxxxx}
 async function submitSolution(secret) {
+  console.log("Submitting solution...");
   const { data } = await axios.post(
     `https://hackattic.com/challenges/brute_force_zip/solve?access_token=${process.env.TOKEN}`,
     { secret }
