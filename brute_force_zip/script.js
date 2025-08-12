@@ -51,6 +51,7 @@ async function runPKCrack() {
   }
 }
 
+// unzip fhe decrypted file
 async function unzipAndReadSecret() {
   console.log("Unzipping...");
   try {
