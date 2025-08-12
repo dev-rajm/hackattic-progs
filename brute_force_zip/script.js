@@ -1,30 +1,21 @@
+import { exec } from "child_process";
+import { promisify } from "util";
+import fs, { readFileSync } from "fs";
 import path from "path";
 import axios from "axios";
 import { config } from "dotenv";
-import { writeFile } from "fs/promises";
-import StreamZip from "node-stream-zip";
 
 config({ path: "../.env", quiet: true });
 
-const ZIP_FILE_PATH = path.resolve("uncompressed.zip"); // Zip file location
+const execAsync = promisify(exec);
 
-const CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+const workingDir = path.resolve();
+fs.mkdirSync(workingDir, { recursive: true });
 
-// Generating password according to the condition
-function* generatePassword(minLen = 4, maxLen = 6) {
-  for (let len = minLen; len <= maxLen; len++) {
-    const total = CHARS.length ** len;
-    for (let i = 0; i < total; i++) {
-      let pass = "";
-      let n = i;
-      for (let j = 0; j < len; j++) {
-        pass = CHARS[n % CHARS.length] + pass;
-        n = Math.floor(n / CHARS.length);
-      }
-      yield pass;
-    }
-  }
-}
+const encryptedZipPath = path.join(workingDir, "package.zip"); // Zip file location
+const knownPlainZipPath = path.join(workingDir, "unprotected.zip");
+const decryptedZipPath = path.join(workingDir, "decrypted.zip");
+const knownPlainFile = "dunwich_horror.txt";
 
 // Download the problem zip
 async function downloadZipFile() {
@@ -35,28 +26,34 @@ async function downloadZipFile() {
     responseType: "arraybuffer",
   });
 
-  await writeFile(ZIP_FILE_PATH, zipResponse.data); // Writing the zip file
+  fs.writeFileSync(encryptedZipPath, zipResponse.data); // Writing the zip file
   console.log("Finished Writing zip file");
 }
 
 // Crack the zip by brute forcing
-async function crackZip() {
-  for (const password of generatePassword(4, 6)) {
-    console.log(`Trying password: ${password}`);
-    try {
-      const zip = new StreamZip.async({ file: ZIP_FILE_PATH, password });
-      const content = await zip.entryData("dunwich_horror.txt");
-      const secret = content.toString().trim();
-      console.log(`Password found: ${password}`);
-      console.log(`Secret value: ${secret}`);
+async function runPKCrack() {
+  console.log("Running PkCrack...");
+  try {
+    const cmd = `C:\\Users\\rajma\\pkcrack\\bin\\pkcrack -a -C ${encryptedZipPath} -c ${knownPlainFile} -P ${knownPlainZipPath} -p ${knownPlainFile} -d ${decryptedZipPath}`;
 
-      zip.close();
-
-      return secret;
-    } catch (error) {
-      // wrong password, move on
-    }
+    await execAsync(cmd);
+  } catch (error) {
+    console.log(`Error: ${error.message}`);
   }
+}
+
+async function unzipAndReadSecret() {
+  console.log("Unzipping...");
+  const cmd = `7z x ${decryptedZipPath} -y -o ${workingDir}`;
+  await execAsync(cmd, { cwd: workingDir });
+
+  const secret = readFileSync(
+    path.join(workingDir, "secret.txt"),
+    "utf8"
+  ).trim();
+
+  console.log(`Secret: ${secret}`);
+  return secret;
 }
 
 // Submit the result {secret: xxxxxxxx}
@@ -71,8 +68,9 @@ async function submitSolution(secret) {
 // Entrypoint
 async function main() {
   await downloadZipFile();
-  const secret = await crackZip();
-  await submitSolution(secret);
+  await runPKCrack();
+  await unzipAndReadSecret();
+  // await submitSolution(secret);
 }
 
 main();
