@@ -45,7 +45,7 @@ async function crackZip() {
     console.log(`Trying password: ${password}`);
     try {
       const zip = new StreamZip.async({ file: ZIP_FILE_PATH, password });
-      const content = await zip.entryData("secret.txt");
+      const content = await zip.entryData("dunwich_horror.txt");
       const secret = content.toString().trim();
       console.log(`Password found: ${password}`);
       console.log(`Secret value: ${secret}`);
