@@ -12,9 +12,9 @@ const execAsync = promisify(exec);
 const workingDir = path.resolve();
 fs.mkdirSync(workingDir, { recursive: true });
 
-const encryptedZipPath = path.join(workingDir, "package.zip"); // Zip file location
-const knownPlainZipPath = path.join(workingDir, "unprotected.zip");
-const decryptedZipPath = path.join(workingDir, "decrypted.zip");
+const encryptedZipPath = path.join(workingDir, "package.zip"); // Problem zip location
+const knownPlainZipPath = path.join(workingDir, "unprotected.zip"); // Unprotected zip with dunwich_horror.txt
+const decryptedZipPath = path.join(workingDir, "decrypted.zip"); // Decrypted zip
 const knownPlainFile = "dunwich_horror.txt";
 
 // Download the problem zip
@@ -31,7 +31,7 @@ async function downloadZipFile() {
   console.log("Finished Downloading zip...");
 }
 
-// Crack the zip by brute forcing
+// Crack the zip with PkCrack tool
 async function runPKCrack() {
   console.log("Running PkCrack...");
   try {
@@ -66,7 +66,7 @@ async function unzipAndReadSecret() {
     console.log(`Secret: ${secret}`);
     return secret;
   } catch (error) {
-    throw new Error(error);
+    console.error(`Error: ${error.message}`);
   }
 }
 
@@ -84,8 +84,8 @@ async function submitSolution(secret) {
 async function main() {
   await downloadZipFile();
   await runPKCrack();
-  await unzipAndReadSecret();
-  // await submitSolution(secret);
+  const secret = await unzipAndReadSecret();
+  await submitSolution(secret);
 }
 
 main();
