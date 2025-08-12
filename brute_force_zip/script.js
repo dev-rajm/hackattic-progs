@@ -1,18 +1,30 @@
-import axios from "axios";
-import { exec } from "child_process";
-import { config } from "dotenv";
-import { readFile, writeFile } from "fs/promises";
 import path from "path";
-import { promisify } from "util";
-import LineReader from "n-readlines";
+import axios from "axios";
+import { config } from "dotenv";
+import { writeFile } from "fs/promises";
+import StreamZip from "node-stream-zip";
 
 config({ path: "../.env", quiet: true });
 
-const execAsync = promisify(exec); // promisify exec to run 7z command
-
 const ZIP_FILE_PATH = path.resolve("uncompressed.zip"); // Zip file location
-const EXTRACT_DIR = path.resolve("unzipped"); // Extracted zip file location
-const WORDLIST = path.resolve("rockyou.txt"); // Word list text file
+
+const CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+// Generating password according to the condition
+function* generatePassword(minLen = 4, maxLen = 6) {
+  for (let len = minLen; len <= maxLen; len++) {
+    const total = CHARS.length ** len;
+    for (let i = 0; i < total; i++) {
+      let pass = "";
+      let n = i;
+      for (let j = 0; j < len; j++) {
+        pass = CHARS[n % CHARS.length] + pass;
+        n = Math.floor(n / CHARS.length);
+      }
+      yield pass;
+    }
+  }
+}
 
 // Download the problem zip
 async function downloadZipFile() {
@@ -27,31 +39,24 @@ async function downloadZipFile() {
   console.log("Finished Writing zip file");
 }
 
-// Extract the zip by brute force
-async function extractZipFile() {
-  // Guessing the password with length 4
-  const lineReader = new LineReader(WORDLIST);
-  let line = lineReader.next();
-  while (line !== null) {
-    const password = line.toString("utf8").toLowerCase();
-    if (password.length >= 4 && password.length <= 6) {
-      console.log(`Trying password: ${password}`);
+// Crack the zip by brute forcing
+async function crackZip() {
+  for (const password of generatePassword(4, 6)) {
+    console.log(`Trying password: ${password}`);
+    try {
+      const zip = new StreamZip.async({ file: ZIP_FILE_PATH, password });
+      const content = await zip.entryData("secret.txt");
+      const secret = content.toString().trim();
+      console.log(`Password found: ${password}`);
+      console.log(`Secret value: ${secret}`);
 
-      try {
-        const extractCommand = `7z x -p${password} -o${EXTRACT_DIR} -y ${ZIP_FILE_PATH}`;
-        await execAsync(extractCommand);
-        console.log(`Password found: ${password}`);
-        return;
-      } catch (error) {}
+      zip.close();
+
+      return secret;
+    } catch (error) {
+      // wrong password, move on
     }
-    line = lineReader.next();
   }
-}
-
-// Read the secret from 'secret.txt
-async function extractSecret() {
-  const content = await readFile(path.join(EXTRACT_DIR, "secret.txt"), "utf8");
-  return content.trim();
 }
 
 // Submit the result {secret: xxxxxxxx}
@@ -66,8 +71,7 @@ async function submitSolution(secret) {
 // Entrypoint
 async function main() {
   await downloadZipFile();
-  await extractZipFile();
-  const secret = await extractSecret();
+  const secret = await crackZip();
   await submitSolution(secret);
 }
 
