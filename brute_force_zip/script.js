@@ -10,8 +10,6 @@ config({ path: "../.env", quiet: true });
 const execAsync = promisify(exec);
 
 const workingDir = path.resolve();
-// fs.mkdirSync(workingDir, { recursive: true });
-
 const encryptedZipPath = path.join(workingDir, "package.zip"); // Problem zip location
 const knownPlainZipPath = path.join(workingDir, "unprotected.zip"); // Unprotected zip with dunwich_horror.txt
 const decryptedZipPath = path.join(workingDir, "decrypted.zip"); // Decrypted zip
@@ -42,6 +40,7 @@ async function runPKCrack() {
       maxBuffer: 1024 * 1024 * 10,
     });
 
+    // console.log(`pkcrack stdout: ${stdout}`);
     if (stderr) console.error(`pkcrack stderr: ${stderr}`);
 
     console.log("Finish PkCrack...");
@@ -50,7 +49,7 @@ async function runPKCrack() {
   }
 }
 
-// unzip the decrypted zip file
+// unzip fhe decrypted file
 async function unzipAndReadSecret() {
   console.log("Unzipping...");
   try {
@@ -75,9 +74,9 @@ async function submitSolution(secret) {
   console.log("Submitting solution...");
   const { data } = await axios.post(
     `https://hackattic.com/challenges/brute_force_zip/solve?access_token=${process.env.TOKEN}`,
-    { secret: secret }
+    { secret }
   );
-  console.log(`Hackattic response: ${JSON.stringify(data, null, 2)}`);
+  console.log(`Hackattic response: ${JSON.stringify(data)}`);
 }
 
 // Entrypoint
