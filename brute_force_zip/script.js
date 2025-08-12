@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import fs, { readFileSync } from "fs";
+import { writeFileSync, readFileSync } from "fs";
 import path from "path";
 import axios from "axios";
 import { config } from "dotenv";
@@ -10,7 +10,7 @@ config({ path: "../.env", quiet: true });
 const execAsync = promisify(exec);
 
 const workingDir = path.resolve();
-fs.mkdirSync(workingDir, { recursive: true });
+// fs.mkdirSync(workingDir, { recursive: true });
 
 const encryptedZipPath = path.join(workingDir, "package.zip"); // Problem zip location
 const knownPlainZipPath = path.join(workingDir, "unprotected.zip"); // Unprotected zip with dunwich_horror.txt
@@ -27,7 +27,7 @@ async function downloadZipFile() {
     responseType: "arraybuffer",
   });
 
-  fs.writeFileSync(encryptedZipPath, zipResponse.data); // Writing the zip file
+  writeFileSync(encryptedZipPath, zipResponse.data); // Writing the zip file
   console.log("Finished Downloading zip...");
 }
 
@@ -42,7 +42,6 @@ async function runPKCrack() {
       maxBuffer: 1024 * 1024 * 10,
     });
 
-    console.log(`pkcrack stdout: ${stdout}`);
     if (stderr) console.error(`pkcrack stderr: ${stderr}`);
 
     console.log("Finish PkCrack...");
@@ -51,7 +50,7 @@ async function runPKCrack() {
   }
 }
 
-// unzip fhe decrypted file
+// unzip the decrypted zip file
 async function unzipAndReadSecret() {
   console.log("Unzipping...");
   try {
@@ -76,17 +75,17 @@ async function submitSolution(secret) {
   console.log("Submitting solution...");
   const { data } = await axios.post(
     `https://hackattic.com/challenges/brute_force_zip/solve?access_token=${process.env.TOKEN}`,
-    { secret }
+    { secret: secret }
   );
-  console.log(`Hackattic response: ${data.message}`);
+  console.log(`Hackattic response: ${JSON.stringify(data, null, 2)}`);
 }
 
 // Entrypoint
 async function main() {
   await downloadZipFile();
   await runPKCrack();
-  const secret = await unzipAndReadSecret();
-  await submitSolution(secret);
+  const result = await unzipAndReadSecret();
+  await submitSolution(result);
 }
 
 main();

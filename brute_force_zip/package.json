@@ -12,11 +12,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "adm-zip": "^0.5.16",
     "axios": "^1.11.0",
-    "dotenv": "^17.2.1",
-    "n-readlines": "^1.0.1",
-    "node-stream-zip": "^1.15.0",
-    "unzipper": "^0.12.3"
+    "dotenv": "^17.2.1"
   }
 }
