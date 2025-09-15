@@ -1,8 +1,9 @@
 node_modules
 dist
+*.txt
+*.bin
 .env
 .vscode
 *.gz
 *.sql
-rockyou.txt
 brute_force_zip/*.txt
