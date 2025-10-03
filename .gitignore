@@ -7,3 +7,4 @@ dist
 *.gz
 *.sql
 brute_force_zip/*.txt
+.prettierrc
