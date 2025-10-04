@@ -3,10 +3,14 @@ import { config } from 'dotenv';
 
 config({ quiet: true });
 
+export type Block = {
+  data: [string, number][];
+  nonce: number | null;
+};
+
 interface ProblemJSON {
   difficulty: number;
-  data: string;
-  nonc: number;
+  block: Block;
 }
 
 export async function getProblemJSON(): Promise<ProblemJSON> {
@@ -15,15 +19,15 @@ export async function getProblemJSON(): Promise<ProblemJSON> {
   );
 
   const { difficulty, block } = res.data;
-  const { nonc, data } = block;
 
-  return { difficulty, data, nonc };
+  return { difficulty, block };
 }
 
-export async function submitSolution(result: Number) {
+export async function submitSolution(nonce: number) {
   const { data } = await axios.post(
-    `https://hackattic.com/challenges/mini_miner/problem?access_token=${process.env.TOKEN}`,
-    result,
+    `https://hackattic.com/challenges/mini_miner/solve?access_token=${process.env.TOKEN}`,
+    { nonce: nonce },
   );
+
   console.log('Hackattic response: ', data);
 }
