@@ -12,7 +12,10 @@ export async function getProblemJSON() {
 }
 
 export async function submitSolution(app_url: string) {
-  const res = await axios.post(`https://hackattic.com/challenges/jotting_jwts/solve?access_token=${process.env.TOKEN}`, {app_url: app_url});
+  const res = await axios.post(
+    `https://hackattic.com/challenges/jotting_jwts/solve?access_token=${process.env.TOKEN}`,
+    { app_url: app_url },
+  );
 
-  console.log("Hackattic Response: ", res.data);
+  console.log('Hackattic Response: ', res.data);
 }
