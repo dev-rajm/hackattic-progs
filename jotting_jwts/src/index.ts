@@ -1,21 +1,21 @@
 import express from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import ngrok from 'ngrok';
 import { config } from 'dotenv';
+import localtunnel from 'localtunnel';
 import { getProblemJSON, submitSolution } from './packages/setup';
 
-config({quiet: true});
+config({ quiet: true });
 
 const app = express();
 app.use(express.text()); // accept JWT raw string
 
 let result = '';
-let app_url = '';
 let jwt_secret = '';
 
 app.post('/', (req, res) => {
   try {
-    const token = req.body.trim();
+    const token = req.body;
+    console.log(token);
     const decoded = jwt.verify(token, jwt_secret);
     console.log(decoded);
 
@@ -39,17 +39,15 @@ app.post('/', (req, res) => {
   }
 });
 
-app.listen(3000, async () => {
+app.listen(process.env.PORT, async () => {
   console.log('Server is listening on 3000');
 
   try {
     jwt_secret = await getProblemJSON();
     console.log('jwt secret: ', jwt_secret);
 
-    app_url = await ngrok.connect({
-      addr: 3000,
-      authtoken: process.env.NGROK_AUTH_TOKEN,
-    });
+    const tunnel = await localtunnel({ port: Number(process.env.PORT) });
+    const app_url = tunnel.url;
     console.log('app_url: ', app_url);
 
     await submitSolution(app_url);
