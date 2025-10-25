@@ -1,13 +1,12 @@
 import express from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { config } from 'dotenv';
 import localtunnel from 'localtunnel';
 import { getProblemJSON, submitSolution } from './packages/setup';
 
-config({ quiet: true });
-
 const app = express();
-app.use(express.text()); // accept JWT raw string
+const PORT = 3000;
+
+app.use(express.text({type: () => true}));
 
 let result = '';
 let jwt_secret = '';
@@ -17,12 +16,6 @@ app.post('/', (req, res) => {
     const token = req.body;
     console.log(token);
     const decoded = jwt.verify(token, jwt_secret);
-    console.log(decoded);
-
-    if (typeof decoded === 'string') {
-      console.log('Decoded payload is string, expected object');
-      return res.status(400).send('Invalid payload');
-    }
 
     const payload = decoded as JwtPayload;
     if (!payload.append) {
@@ -39,14 +32,14 @@ app.post('/', (req, res) => {
   }
 });
 
-app.listen(process.env.PORT, async () => {
+app.listen(PORT, async () => {
   console.log('Server is listening on 3000');
 
   try {
     jwt_secret = await getProblemJSON();
     console.log('jwt secret: ', jwt_secret);
 
-    const tunnel = await localtunnel({ port: Number(process.env.PORT) });
+    const tunnel = await localtunnel({ port: PORT });
     const app_url = tunnel.url;
     console.log('app_url: ', app_url);
 
