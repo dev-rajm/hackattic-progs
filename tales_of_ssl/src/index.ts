@@ -23,11 +23,11 @@ async function main() {
   const attrs = [
     {
       name: "commonName",
-      value: required_data.domain,
+      value: required_data.domain, // wikipedia.org
     },
     {
       name: "countryName",
-      value: required_data.country[0] + required_data.country.split(' ')[1][0],
+      value: required_data.country[0] + required_data.country.split(' ')[1][0], // US
     },
   ];
 
@@ -52,7 +52,7 @@ async function main() {
 
   cert.setExtensions(extensions);
 
-  // sign the certificate
+  // sign the certificate using the forge private key 
   cert.sign(privateKey, forge.md.sha256.create());
 
   // convert to der
@@ -62,7 +62,7 @@ async function main() {
   const derBuf = Buffer.from(derBytes, "binary");
   const der64 = derBuf.toString("base64");
 
-  await submitSolution(der64);
+  await submitSolution(der64); // submit the solution
 }
 
 main();
