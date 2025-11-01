@@ -24,7 +24,7 @@ export async function getProblemJSON(): Promise<ProblemJSON> {
 export async function submitSolution(certificate: string) {
   const { data } = await axios.post(
     `https://hackattic.com/challenges/tales_of_ssl/solve?access_token=${process.env.TOKEN}`,
-    certificate,
+    { certificate: certificate },
   );
 
   console.log("Hackattic response: ", data);
