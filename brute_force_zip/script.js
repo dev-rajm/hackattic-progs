@@ -19,7 +19,7 @@ const knownPlainFile = "dunwich_horror.txt";
 async function downloadZipFile() {
   console.log("Downloading problem zip...");
   const { data } = await axios.get(
-    `https://hackattic.com/challenges/brute_force_zip/problem?access_token=9def105d03dce269`
+    `https://hackattic.com/challenges/brute_force_zip/problem?access_token=${process.env.TOKEN}`
   );
   const zipResponse = await axios.get(data.zip_url, {
     responseType: "arraybuffer",
