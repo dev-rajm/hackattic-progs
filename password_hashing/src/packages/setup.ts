@@ -1,7 +1,7 @@
 import axios from "axios";
 import {config} from "dotenv";
 
-config({quiet: true});
+config({quiet: true, path: "../../../.env"});
 
 interface SolutionType {
   sha256: string,
@@ -10,8 +10,8 @@ interface SolutionType {
   scrypt: string,
 };
 
-const problemURL = `https://hackattic.com/${process.env.PROBLEM_ENDPOINT}`;
-const solutionURL = `https://hackattic.com/${process.env.SOLUTION_ENDPOINT}`;
+const problemURL = `https://hackattic.com/challenges/password_hashing/problem?access_token=${process.env.TOKEN}`;
+const solutionURL = `https://hackattic.com/challenges/password_hashing/solve?access_token${process.env.TOKEN}`;
 
 export async function getProblem() {
   const result = await axios.get(problemURL);

@@ -1,13 +1,13 @@
 import axios from "axios";
 import { Client } from "pg";
 import { config } from "dotenv";
-import { writeFile } from "fs";
+import { writeFile } from "node:fs/promises";
 import path from "path";
 import { gunzip } from "zlib";
 import { promisify } from "util";
 import { exec } from "child_process";
 
-config({ path: "../.env", quiet: true });
+config({ quiet: true, path: "../.env" });
 
 const gunzipAsync = promisify(gunzip);
 const execAsync = promisify(exec);
@@ -33,10 +33,7 @@ async function downloadAndExtractSQLDump() {
     const decompressed = await gunzipAsync(buffer); // Decompress the dump buffer
     const sql = decompressed.toString("utf8");
 
-    await writeFile(SQL_FILE_PATH, sql, (err) => {
-      if (err) console.error(`Failed to write file: ${err.message}`);
-      console.log("SQL Dump written to file");
-    });
+    await writeFile(SQL_FILE_PATH, sql);
   } catch (error) {
     throw new Error(`Failed to download and write SQL dump: ${error.message}`);
   }

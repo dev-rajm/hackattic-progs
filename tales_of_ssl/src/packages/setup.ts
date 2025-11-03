@@ -1,7 +1,7 @@
 import axios from "axios";
 import { config } from "dotenv";
 
-config({ quiet: true });
+config({ quiet: true, path: "../../../.env" });
 
 export type RequiredData = {
   domain: string;

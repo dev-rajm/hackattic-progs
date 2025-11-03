@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { config } from 'dotenv';
 
-config({ quiet: true });
+config({ quiet: true, path: "../../../.env" });
 
 export async function getProblemJSON() {
   const res = await axios.get(

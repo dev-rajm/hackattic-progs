@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import {exec} from "node:child_process";
 import {promisify} from "node:util";
-import {createHash} from "node:crypto";
 import path from "node:path";
 
 const execAsync = promisify(exec); // promisify the exec command
