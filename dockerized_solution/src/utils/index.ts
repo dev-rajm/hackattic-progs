@@ -1,7 +1,7 @@
 import axios from "axios";
 import { config } from "dotenv";
 
-config({ quiet: true, path: __dirname+"/./../../../.env" });
+config({ quiet: true, path: __dirname + "/./../../../.env" });
 
 type CREDENTIALS = {
   user: string;
@@ -14,7 +14,18 @@ interface ProblemJSON {
   trigger_token: string;
 }
 
-console.log(process.env.TOKEN);
+export async function triggerPush(
+  trigger_token: string,
+  registry_host: string,
+): Promise<void> {
+  const { data } = await axios.post(
+    `https://hackattic.com/_/push/${trigger_token}`,
+    {
+      registry_host: registry_host,
+    },
+  );
+  console.log(data);
+}
 
 export async function getProblemJSON(): Promise<ProblemJSON> {
   const { data } = await axios.get(
