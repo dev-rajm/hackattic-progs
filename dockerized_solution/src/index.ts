@@ -1,5 +1,5 @@
 import { getProblemJSON, triggerPush } from "./utils";
-import { createPasswordFile, runCompose } from "./utils/utils";
+import { createPasswordFile, runCompose, stopCompose } from "./utils/utils";
 import localtunnel from "localtunnel";
 
 async function main() {
@@ -12,6 +12,8 @@ async function main() {
     await triggerPush(res.trigger_token, registry_host.url.split("//")[1]);
   } catch (e) {
     console.log(e);
+  } finally {
+    await stopCompose();
   }
 }
 

@@ -20,7 +20,17 @@ export async function createPasswordFile(
 
 export async function runCompose(): Promise<void> {
   try {
-    const { stdout, stderr } = await asyncExec("docker-compose up -d");
+    const { stdout, stderr } = await asyncExec("docker compose up -d");
+    console.log(stdout);
+    if (stderr) console.log(stderr);
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function stopCompose(): Promise<void> {
+  try {
+    const { stdout, stderr } = await asyncExec("docker compose stop");
     console.log(stdout);
     if (stderr) console.log(stderr);
   } catch (e) {
