@@ -8,31 +8,43 @@ export async function createPasswordFile(
   password: string,
 ): Promise<void> {
   try {
-    const { stdout, stderr } = await asyncExec(
+    const { stdout } = await asyncExec(
       `htpasswd -bcB ${__dirname + "/./../../registry/registry.password"} ${username} ${password}`,
     );
     console.log("stdout: ", stdout);
-    if (stderr) console.log("stderr: ", stderr);
   } catch (e) {
     console.log(e);
   }
 }
 
-export async function runCompose(): Promise<void> {
+export async function runCompose(): Promise<string> {
   try {
-    const { stdout, stderr } = await asyncExec("docker compose up -d");
+    await asyncExec("docker compose up -d cloudflared");
+
+    await new Promise(res => setTimeout(res, 2000)); // wait for 2sec
+
+    const { stdout } = await asyncExec("docker compose logs --no-log-prefix --tail=50 cloudflared");
     console.log(stdout);
-    if (stderr) console.log(stderr);
+
+    const match = stdout.match(/https:\/\/.*?\.trycloudflare\.com/);
+    if(!match) throw new Error("Cloudflare URL not found");
+
+    // catch registry_host from url
+    const cfURL = match[0];
+    const registry_host = cfURL.replace("https://", "");
+    console.log("registry_host: ", registry_host);
+
+    return registry_host;
   } catch (e) {
     console.log(e);
+    throw e;
   }
 }
 
 export async function stopCompose(): Promise<void> {
   try {
-    const { stdout, stderr } = await asyncExec("docker compose stop");
+    const { stdout } = await asyncExec("docker compose stop");
     console.log(stdout);
-    if (stderr) console.log(stderr);
   } catch (e) {
     console.log(e);
   }

@@ -10,4 +10,7 @@ services:
       - ./registry/registry.password:/auth/registry.password
       - ./registry/data:/data
     ports:
-      - 5000
+      - "5000:5000"
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://registry:5000
