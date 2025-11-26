@@ -21,8 +21,6 @@ export async function runCompose(): Promise<string> {
   try {
     await asyncExec("docker compose up -d cloudflared");
 
-    await new Promise(res => setTimeout(res, 2000)); // wait for 2sec
-
     const { stdout } = await asyncExec("docker compose logs --no-log-prefix --tail=50 cloudflared");
     console.log(stdout);
 
