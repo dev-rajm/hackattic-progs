@@ -1,6 +1,4 @@
-import axios from "axios"
-import https from "node:https";
-import http from "node:http";
+import axios from "axios";
 import { config } from "dotenv";
 
 config({ quiet: true, path: __dirname + "/./../../../.env" });
@@ -25,10 +23,6 @@ export async function triggerPush(
     {
       registry_host: registry_host,
     },
-    {
-      httpAgent: new http.Agent({keepAlive: true}),
-      httpsAgent: new https.Agent({keepAlive: true})
-    }
   );
   console.log(data);
 }

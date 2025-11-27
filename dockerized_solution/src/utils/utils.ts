@@ -21,11 +21,13 @@ export async function runCompose(): Promise<string> {
   try {
     await asyncExec("docker compose up -d cloudflared");
 
-    const { stdout } = await asyncExec("docker compose logs --no-log-prefix --tail=50 cloudflared");
+    const { stdout } = await asyncExec(
+      "docker compose logs --no-log-prefix --tail=50 cloudflared",
+    );
     console.log(stdout);
 
     const match = stdout.match(/https:\/\/.*?\.trycloudflare\.com/);
-    if(!match) throw new Error("Cloudflare URL not found");
+    if (!match) throw new Error("Cloudflare URL not found");
 
     // catch registry_host from url
     const cfURL = match[0];
