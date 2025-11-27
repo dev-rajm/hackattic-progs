@@ -3,6 +3,36 @@ import { promisify } from "node:util";
 
 const asyncExec = promisify(exec);
 
+export async function runContainer(
+  registry_host: string,
+  username: string,
+  password: string,
+  ignition_key: string,
+  tags: string[],
+): Promise<string | any> {
+  try {
+    const { stdout, stderr } = await asyncExec(
+      `docker login ${registry_host} -u ${username} -p ${password}`,
+    );
+    console.log(stdout);
+
+    for (let i=0; i<2; i++) {
+      console.log("Pulling tag: ", tags[i]);
+      await asyncExec(`docker pull ${registry_host}/hack:${tags[i]}`);
+      console.log("Runnign tag: ", tags[i]);
+      const { stdout } = await asyncExec(
+        `docker run --rm -e IGNITION_KEY=${ignition_key} ${registry_host}/hack:${tags[i]}`,
+      );
+      if (stdout && stdout.trim().length > 0) {
+        return stdout.trim();
+      }
+    }
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+}
+
 export async function createPasswordFile(
   username: string,
   password: string,

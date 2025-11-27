@@ -1,6 +1,7 @@
 services:
   registry:
-    image: registry:latest
+    image: registry:2
+    restart: unless-stopped
     environment:
       REGISTRY_AUTH: htpasswd
       REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
@@ -9,8 +10,9 @@ services:
     volumes:
       - ./registry/registry.password:/auth/registry.password
       - ./registry/data:/data
-    ports:
-      - "5000:5000"
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     command: tunnel --url http://registry:5000
+    depends_on:
+      - registry
