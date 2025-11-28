@@ -12,14 +12,16 @@ async function main(): Promise<void> {
 
     // on connect to server
     ws.on("open", () => {
-      const time = Date.now();
+      let startTime: number;
       ws.on("message", (message: ArrayBuffer) => {
-        const millisecond = time - Date.now();
         const utfMessage = Buffer.from(message).toString("utf8");
         console.log("recived message: ", utfMessage);
-        if (utfMessage.startsWith("ping!")) {
-          console.log("sending: ", millisecond);
-          ws.send(millisecond);
+        if (utfMessage.startsWith("hello!")) {
+          startTime = Date.now();
+        } else if (utfMessage.startsWith("ping!")) {
+          const endTime = Math.abs(startTime - Date.now());
+          console.log("sending: ", endTime);
+          ws.send(endTime);
         } else if (utfMessage.startsWith("ouch!")) {
           console.log("Disconnect from server");
           ws.close();
