@@ -1,44 +1,61 @@
 import { getProblemJSON, submitSolution } from "./utils";
 import WebSocket from "ws";
 
-let ws: WebSocket;
-
 async function main(): Promise<void> {
   const { token } = await getProblemJSON();
-  try {
-    ws = new WebSocket(`wss://hackattic.com/_/ws/${token}`);
-    // on error
-    ws.on("error", console.error);
+  const ws = new WebSocket(`wss://hackattic.com/_/ws/${token}`);
 
-    // on connect to server
-    ws.on("open", () => {
-      let startTime: number;
-      ws.on("message", (message: ArrayBuffer) => {
-        const utfMessage = Buffer.from(message).toString("utf8");
-        console.log("recived message: ", utfMessage);
-        if (utfMessage.startsWith("hello!")) {
-          startTime = Date.now();
-        } else if (utfMessage.startsWith("ping!")) {
-          const endTime = Math.abs(startTime - Date.now());
-          console.log("sending: ", endTime);
-          ws.send(endTime);
-        } else if (utfMessage.startsWith("ouch!")) {
-          console.log("Disconnect from server");
-          ws.close();
-        } else {
-          console.log(message);
-        }
+  const intervals = [700, 1500, 2000, 2500, 3000];
+
+  let connectionOpenAt = 0;
+  let lastPing = 0;
+
+  ws.on("open", () => {
+    connectionOpenAt = Date.now();
+    console.log("Connection opened at: ", connectionOpenAt);
+  });
+
+  ws.on("message", async (msg: Buffer) => {
+    const text = msg.toString();
+    console.log("received: ", text);
+
+    if (text.startsWith("ping!")) {
+      const now = Date.now();
+      let delta;
+
+      if (lastPing === 0) {
+        // first ping!
+        delta = now - connectionOpenAt;
+      } else {
+        // subsequent pings
+        delta = now - lastPing;
+      }
+
+      const chosen = intervals.reduce((prev: number, curr: number) => {
+        return Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev;
       });
-    });
 
-    // on closing socket
-    ws.on("close", () => {
-      console.log("Disconnected from server");
-    });
-  } catch (e) {
-    console.log(e);
-    throw e;
-  }
+      ws.send(String(chosen));
+
+      lastPing = now;
+    }
+
+    if (text.startsWith("ouch!")) {
+      console.log("server closed: ", text);
+      ws.close();
+    }
+
+    if (text.startsWith("congratulations!")) {
+      const secret = text.match(/"([^"]*)"/);
+      if (secret) {
+        console.log("secret found: ", secret[1]);
+        await submitSolution(secret[1]);
+        ws.close();
+      }
+    }
+  });
+
+  ws.on("close", () => console.log("Disconnected"));
 }
 
 main();
