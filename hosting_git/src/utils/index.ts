@@ -16,3 +16,11 @@ export async function getProblemJSON(): Promise<ProblemJSON> {
   );
   return data;
 }
+
+export async function submitSolution(secret: string): Promise<void> {
+  const { data } = await axios.post(
+    `https://hackattic.com/challenges/hosting_git/solve?access_token=${process.env.TOKEN}`,
+    { secret: secret },
+  );
+  console.log("hackattic response: ", data);
+}
