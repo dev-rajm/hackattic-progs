@@ -1,3 +1,4 @@
+#include <cjson/cJSON.h>
 #include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,10 +11,10 @@ typedef struct memory {
 
 size_t write_data(void *contents, size_t size, size_t nmemb, void *userp) {
   size_t real_size = size * nmemb;
-  memory_t *mem = (memory_t*)userp;
+  memory_t *mem = (memory_t *)userp;
 
-  char *ptr = realloc(mem->data, mem->size + real_size +1);
-  if(!ptr) {
+  char *ptr = realloc(mem->data, mem->size + real_size + 1);
+  if (!ptr) {
     return 0;
   }
 
@@ -25,6 +26,11 @@ size_t write_data(void *contents, size_t size, size_t nmemb, void *userp) {
   return real_size;
 }
 
+size_t write_file(void *ptr, size_t size, size_t nmemb, void *stream) {
+  size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
+  return written;
+}
+
 int main(void) {
   CURL *curl;
   CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
@@ -32,6 +38,7 @@ int main(void) {
     return (int)result;
   }
 
+  const char *file_name = "protected.zip";
   memory_t response;
   response.data = malloc(1);
   response.size = 0;
@@ -62,8 +69,30 @@ int main(void) {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(result));
     }
-    printf("Response:\n%s\n", response.data);
+    cJSON *root = cJSON_Parse(response.data);
     free(response.data);
+    if (!root) {
+      printf("Invalid JSON\n");
+      return 1;
+    }
+
+    cJSON *zip = cJSON_GetObjectItemCaseSensitive(root, "zip_url");
+    char *zip_url = zip->valuestring;
+
+    // download zip file
+    FILE *fptr;
+    curl_easy_setopt(curl, CURLOPT_URL, zip_url);
+    cJSON_Delete(root);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_file);
+
+    fptr = fopen(file_name, "wb");
+    if (fptr) {
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, fptr);
+      result = curl_easy_perform(curl);
+      fclose(fptr);
+    }
     curl_easy_cleanup(curl);
   }
   curl_global_cleanup();
