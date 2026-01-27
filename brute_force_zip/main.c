@@ -27,7 +27,8 @@ static size_t write_to_buffer(void *contents, size_t size, size_t nmemb,
   return real_size;
 }
 
-static size_t write_to_file(void *ptr, size_t size, size_t nmemb, void *stream) {
+static size_t write_to_file(void *ptr, size_t size, size_t nmemb,
+                            void *stream) {
   return fwrite(ptr, size, nmemb, stream);
 }
 
@@ -86,7 +87,7 @@ int main(void) {
   response.data = NULL;
 
   /* file download */
-  fptr = fopen("protected", "wb");
+  fptr = fopen("protected.zip", "wb");
   if (!fptr) {
     goto cleanup;
   }
@@ -95,13 +96,13 @@ int main(void) {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_to_file);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fptr);
 
-  if(curl_easy_perform(curl) != CURLE_OK) {
+  if (curl_easy_perform(curl) != CURLE_OK) {
     goto cleanup;
   }
 
   /* run fcrackzip */
-  FILE *fp = popen("fcrackzip protected.zip -c a1 -l 4-6 -v -u 2>&1", "r");
-  if(!fp) {
+  fptr = popen("fcrackzip protected.zip -c a1 -l 4-6 -v -u 2>&1", "r");
+  if (!fptr) {
     perror("popen");
     return 1;
   }
@@ -109,30 +110,61 @@ int main(void) {
   char line[512];
   char password[128];
 
-  while(fgets(line, sizeof(line), fp)) {
+  while (fgets(line, sizeof(line), fptr)) {
     fputs(line, stdout);
-    if(sscanf(line, "PASSWORD FOUND!!!!: pw == %127s", password) == 1) {
+    if (sscanf(line, "PASSWORD FOUND!!!!: pw == %127s", password) == 1) {
       break;
     }
   }
 
-  pclose(fp);
+  pclose(fptr);
 
-  if(password[0]) {
+  if (password[0]) {
     printf("Password is: %s\n", password);
   } else {
     printf("Password not found!\n");
     goto cleanup;
   }
-  
+
+  /* unzip protected.zip */
+  // char unzip_cmd[512];
+  // snprintf(unzip_cmd, sizeof(unzip_cmd), "7z x protected.zip -p'%s'",
+  // password); system(unzip_cmd);
+  //
+  // /* read the secret.txt */
+  // fptr = fopen("secret.txt", "r");
+  // char secret[100];
+  // fgets(secret, sizeof(secret), fptr);
+  //
+  // /* send the secret to the solution endpoint */
+  // char solution_url[512];
+  // char json_data[512];
+  // snprintf(json_data, sizeof(json_data), "{\"secret\":\"%s\"}", secret);
+  // snprintf(
+  //     solution_url, sizeof(solution_url),
+  //     "https://hackattic.com/challenges/brute_force_zip/solve?access_token=%s",
+  //     token);
+  //
+  // curl_easy_setopt(curl, CURLOPT_URL, solution_url);
+  // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+  // curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, sizeof(json_data));
+  //
+  // if (curl_easy_perform(curl) != CURLE_OK) {
+  //   goto cleanup;
+  // }
+  //
+  system("rm *.txt");
+
   rc = EXIT_SUCCESS;
 
 cleanup:
-  if(fptr) fclose(fptr);
+  if (fptr)
+    fclose(fptr);
   free(zip_url);
   free(response.data);
-  if(curl) curl_easy_cleanup(curl);
+  if (curl)
+    curl_easy_cleanup(curl);
   curl_global_cleanup();
 
-  return 0;
+  return rc;
 }
