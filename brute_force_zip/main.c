@@ -86,7 +86,7 @@ int main(void) {
   response.data = NULL;
 
   /* file download */
-  fptr = fopen("protected.zip", "wb");
+  fptr = fopen("protected", "wb");
   if (!fptr) {
     goto cleanup;
   }
@@ -98,6 +98,10 @@ int main(void) {
   if(curl_easy_perform(curl) != CURLE_OK) {
     goto cleanup;
   }
+
+  /* run fcrackzip */
+  char *command = "fcrackzip protected.zip -c a1 -l 4-6 -v -u";
+  system(command);
 
   rc = EXIT_SUCCESS;
 
