@@ -100,9 +100,31 @@ int main(void) {
   }
 
   /* run fcrackzip */
-  char *command = "fcrackzip protected.zip -c a1 -l 4-6 -v -u";
-  system(command);
+  FILE *fp = popen("fcrackzip protected.zip -c a1 -l 4-6 -v -u 2>&1", "r");
+  if(!fp) {
+    perror("popen");
+    return 1;
+  }
 
+  char line[512];
+  char password[128];
+
+  while(fgets(line, sizeof(line), fp)) {
+    fputs(line, stdout);
+    if(sscanf(line, "PASSWORD FOUND!!!!: pw == %127s", password) == 1) {
+      break;
+    }
+  }
+
+  pclose(fp);
+
+  if(password[0]) {
+    printf("Password is: %s\n", password);
+  } else {
+    printf("Password not found!\n");
+    goto cleanup;
+  }
+  
   rc = EXIT_SUCCESS;
 
 cleanup:
