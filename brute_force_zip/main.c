@@ -39,6 +39,7 @@ int main(void) {
   char *zip_url = NULL;
   int rc = EXIT_FAILURE;
 
+  const char *base = "https://hackattic.com/challenges/brute_force_zip";
   const char *token = getenv("HACKATTIC_TOKEN");
   if (!token) {
     fprintf(stderr, "HACKATTIC_TOKEN not set\n");
@@ -55,12 +56,9 @@ int main(void) {
   }
 
   char url[512];
-  snprintf(url, sizeof(url),
-           "https://hackattic.com/challenges/brute_force_zip/"
-           "problem?access_token=%s",
-           token);
+  snprintf(url, sizeof(url), "%s/problem?access_token=%s", base, token);
 
-  /* JSON request  */
+  /* ---- curl options for get request ---- */
   memory_t response = {0};
 
   curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -83,13 +81,14 @@ int main(void) {
     goto cleanup;
   }
 
+  /* ---- extract the zip_url value from response json ---- */
   zip_url = strdup(zip->valuestring);
   cJSON_Delete(root);
   root = NULL;
   free(response.data);
   response.data = NULL;
 
-  /* writing the zip file */
+  /* ---- writing the zip file ---- */
   fptr = fopen("protected.zip", "wb");
   if (!fptr) {
     goto cleanup;
@@ -106,13 +105,14 @@ int main(void) {
   fclose(fptr);
   fptr = NULL;
 
-  /* run fcrackzip */
+  /* ---- run fcrackzip to crack the zip password ---- */
   fptr = popen("fcrackzip protected.zip -c a1 -l 4-6 -v -u 2>&1", "r");
   if (!fptr) {
     perror("popen");
     return 1;
   }
 
+  /* ---- store the password ---- */
   char line[512];
   char password[128];
 
@@ -125,6 +125,7 @@ int main(void) {
 
   pclose(fptr);
 
+  /* ---- checking for valid password ---- */
   if (password[0]) {
     printf("Password is: %s\n", password);
   } else {
@@ -132,44 +133,50 @@ int main(void) {
     goto cleanup;
   }
 
-  /* unzip protected.zip */
+  /* ---- unzip protected.zip via 7z ---- */
   char unzip_cmd[512];
   snprintf(unzip_cmd, sizeof(unzip_cmd), "7z x protected.zip -p'%s'", password);
   system(unzip_cmd);
 
-  /* read the secret.txt */
+  /* ---- read the secret.txt ---- */
   fptr = fopen("secret.txt", "r");
   char secret[100];
-  fgets(secret, sizeof(secret), fptr);
+  while (fgets(secret, sizeof(secret), fptr)) {
+    // ignore in newline
+    secret[strcspn(secret, "\n\r")] = '\0';
+  }
 
-  /* send the secret to the solution endpoint */
+  /* ---- send the secret to the solution endpoint ---- */
   memory_t post_response = {0};
 
   char solution_url[512];
-  char json_data[512];
-  snprintf(json_data, sizeof(json_data), "{\"secret\":\"%s\"}", secret);
-  snprintf(
-      solution_url, sizeof(solution_url),
-      "https://hackattic.com/challenges/brute_force_zip/solve?access_token=%s",
-      token);
-  printf("json=%s\n", json_data);
+  snprintf(solution_url, sizeof(solution_url), "%s/solve?access_token=%s", base,
+           token);
 
+  /* ---- creating the solution json ---- */
+  root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "secret", secret);
+
+  // store it as json string
+  char *json_data = cJSON_Print(root);
+
+  /* ---- curl options for post request ---- */
   curl_easy_setopt(curl, CURLOPT_URL, solution_url);
-  curl_easy_setopt(curl, CURLOPT_POST, 1L);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(json_data));
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_to_buffer);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &post_response);
-  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
   if (curl_easy_perform(curl) != CURLE_OK) {
     goto cleanup;
   }
 
+  /* ---- print the hackattic response ---- */
   printf("Hackattic response: %s\n", post_response.data);
-  printf("Cleaning data files\n");
+  free(post_response.data);
+  post_response.data = NULL;
 
+  /* ---- Remove unused files ---- */
   system("rm *.txt");
   system("rm protected*");
 
