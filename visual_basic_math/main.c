@@ -7,9 +7,11 @@
 
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
+#include <leptonica/allheaders.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tesseract/capi.h>
 
 typedef struct memory {
   char *data;
@@ -86,17 +88,38 @@ int main(void) {
 
   /* ---- Writing the image file ---- */
   fp = fopen("image.png", "wb");
-  
+
   curl_easy_setopt(curl, CURLOPT_URL, image_url);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_to_file);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 
-  if(curl_easy_perform(curl) != CURLE_OK) {
+  if (curl_easy_perform(curl) != CURLE_OK) {
     goto cleanup;
   }
 
   fclose(fp);
   fp = NULL;
+
+  /* ---- calculate ---- */
+  TessBaseAPI *api = TessBaseAPICreate();
+  if (TessBaseAPIInit3(api, NULL, "eng")) {
+    fprintf(stderr, "Could not initilize tesseract.\n");
+    goto cleanup;
+  }
+  TessBaseAPISetVariable(api, "tessedit_char_whitelist", "0123456789+-*/÷×");
+
+  PIX *img = pixRead("image.png");
+  if (!image) {
+    fprintf(stderr, "Could not read image.\n");
+    goto cleanup;
+  }
+
+  TessBaseAPISetImage2(api, img);
+
+  char *outText = TessBaseAPIGetUTF8Text(api);
+  printf("%s\n", outText);
+
+  TessBaseAPIDelete(api);
 
   rc = EXIT_SUCCESS;
 cleanup:
