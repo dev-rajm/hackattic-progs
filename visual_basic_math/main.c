@@ -98,7 +98,39 @@ int main(void) {
   fclose(fp);
   fp = NULL;
 
-  /* ---- calculate ---- */
+  /* ---- parse the image ---- */
+  fp = popen("python3 ocr.py image.png", "r");
+  char result[256];
+  while (fgets(result, sizeof(result), fp)) {
+    printf("%s\n", result);
+  }
+  pclose(fp);
+  fp = NULL;
+
+  /* ---- submit solution ---- */
+  memory_t post_response = {0};
+
+  char solution_url[512];
+  snprintf(solution_url, sizeof(solution_url), "%s/solve?access_token=%s", bash,
+           token);
+
+  root = cJSON_CreateObject();
+  cJSON_AddStringToObject(root, "result", result);
+
+  char *json_data = cJSON_Print(root);
+  curl_easy_setopt(curl, CURLOPT_URL, solution_url);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(json_data));
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_to_buffer);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &post_response);
+
+  if(curl_easy_perform(curl) != CURLE_OK) {
+    goto cleanup;
+  }
+
+  printf("hackattic response: %s\n", post_response.data);
+  free(post_response.data);
+  post_response.data = NULL;
 
   rc = EXIT_SUCCESS;
 cleanup:
