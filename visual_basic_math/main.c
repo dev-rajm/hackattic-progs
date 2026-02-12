@@ -99,8 +99,8 @@ int main(void) {
   fp = NULL;
 
   /* ---- parse the image ---- */
-  fp = popen("python3 ocr.py image.png", "r");
-  char result[256];
+  fp = popen("tesseract image.png stdout --psm 6 -c tessedit_char_whitelist=+-0123456789x÷", "r");
+  char result[1024];
   while (fgets(result, sizeof(result), fp)) {
     printf("%s\n", result);
   }
